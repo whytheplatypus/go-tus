@@ -2,6 +2,9 @@ package tus
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
+	"io"
 )
 
 type Uploader struct {
@@ -66,6 +69,11 @@ func (u *Uploader) UploadChunck() error {
 	size, err := u.upload.stream.Read(data)
 
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			u.client.Header.Set("Upload-Defer-Length", "")
+			u.client.Header.Set("Upload-Length", fmt.Sprintf("%d", u.offset))
+			u.client.uploadChunck(u.url, nil, 0, u.offset)
+		}
 		return err
 	}
 
