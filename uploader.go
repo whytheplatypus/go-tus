@@ -3,7 +3,6 @@ package tus
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 )
 
@@ -38,6 +37,11 @@ func (u *Uploader) Url() string {
 	return u.url
 }
 
+func (u *Uploader) SetUrl(url string) string {
+	u.url = url
+	return u.url
+}
+
 // Offset returns the current offset uploaded.
 func (u *Uploader) Offset() int64 {
 	return u.offset
@@ -68,13 +72,15 @@ func (u *Uploader) UploadChunck() error {
 
 	size, err := u.upload.stream.Read(data)
 
+	var eofErr error
 	if err != nil {
 		if errors.Is(err, io.EOF) {
-			u.client.Header.Set("Upload-Defer-Length", "")
-			u.client.Header.Set("Upload-Length", fmt.Sprintf("%d", u.offset))
-			u.client.uploadChunck(u.url, nil, 0, u.offset)
+			u.client.Header.Set("Upload-Draft-Interop-Version", "5")
+			u.client.Header.Set("Upload-Complete", "?1")
+			eofErr = err
+		} else {
+			return err
 		}
-		return err
 	}
 
 	body := bytes.NewBuffer(data[:size])
@@ -91,7 +97,7 @@ func (u *Uploader) UploadChunck() error {
 
 	u.notifyChan <- true
 
-	return nil
+	return eofErr
 }
 
 // Waits for a signal to broadcast to all subscribers

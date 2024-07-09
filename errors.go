@@ -24,5 +24,5 @@ type ClientError struct {
 }
 
 func (c ClientError) Error() string {
-	return fmt.Sprintf("unexpected status code: %d", c.Code)
+	return fmt.Sprintf("unexpected status code: %d %s", c.Code, string(c.Body))
 }
